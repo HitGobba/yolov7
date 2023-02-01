@@ -447,6 +447,7 @@ def train(hyp, opt, device, tb_writer=None):
             fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
             if fi > best_fitness:
                 best_fitness = fi
+                best_epoch = epoch
             wandb_logger.end_epoch(best_result=best_fitness == fi)
 
             # Save model
@@ -478,7 +479,7 @@ def train(hyp, opt, device, tb_writer=None):
                             last.parent, opt, epoch, fi, best_model=best_fitness == fi)
                 del ckpt
 
-        # end epoch ----------------------------------------------------------------------------------------------------
+        # end epoch ---------------------------------------------------------------------------------------------------- 
     # end training
     if rank in [-1, 0]:
         # Plots
@@ -490,6 +491,10 @@ def train(hyp, opt, device, tb_writer=None):
                                               if (save_dir / f).exists()]})
         # Test best.pt
         logger.info('%g epochs completed in %.3f hours.\n' % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
+
+        logger.info('Best epoch: %g/%g' % (best_epoch, epochs - 1))
+        
+                 
         if opt.data.endswith('coco.yaml') and nc == 80:  # if COCO
             for m in (last, best) if best.exists() else (last):  # speed, mAP tests
                 results, _, _ = test.test(opt.data,
