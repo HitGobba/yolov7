@@ -965,7 +965,7 @@ class ComputeLossBinOTA:
         #indices, anch = self.find_4_positive(p, targets)
         #indices, anch = self.find_5_positive(p, targets)
         #indices, anch = self.find_9_positive(p, targets)
-
+        device = torch.device(targets.device)
         matching_bs = [[] for pp in p]
         matching_as = [[] for pp in p]
         matching_gjs = [[] for pp in p]
@@ -1007,7 +1007,7 @@ class ComputeLossBinOTA:
                 all_gj.append(gj)
                 all_gi.append(gi)
                 all_anch.append(anch[i][idx])
-                from_which_layer.append(torch.ones(size=(len(b),)) * i)
+                from_which_layer.append((torch.ones(size=(len(b),)) * i).to(device))
                 
                 fg_pred = pi[b, a, gj, gi]                
                 p_obj.append(fg_pred[:, obj_idx:(obj_idx+1)])
@@ -1066,7 +1066,7 @@ class ComputeLossBinOTA:
                 + 3.0 * pair_wise_iou_loss
             )
 
-            matching_matrix = torch.zeros_like(cost)
+            matching_matrix = torch.zeros_like(cost, device=device)
 
             for gt_idx in range(num_gt):
                 _, pos_idx = torch.topk(
@@ -1080,7 +1080,7 @@ class ComputeLossBinOTA:
                 _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
                 matching_matrix[:, anchor_matching_gt > 1] *= 0.0
                 matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1.0
-            fg_mask_inboxes = matching_matrix.sum(0) > 0.0
+            fg_mask_inboxes = (matching_matrix.sum(0) > 0.0).to(device)
             matched_gt_inds = matching_matrix[:, fg_mask_inboxes].argmax(0)
         
             from_which_layer = from_which_layer[fg_mask_inboxes]
